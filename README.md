@@ -150,3 +150,6 @@ written by `Window.Config:Save`. Most elements accept an `Icon` (Lucide name).
 ## License
 
 MIT - see [LICENSE](LICENSE).
+
+## Soggy cat
+![Soggy cat](./assets/cat.png)
