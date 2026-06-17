@@ -1,6 +1,6 @@
 # SerhiiUI
 
-A modern UI library for Roblox script hubs, written in Luau.
+A modern UI library for Roblox scripts, written in Luau.
 
 The look & feel is inspired by [WindUI](https://github.com/Footagesus/WindUI) -
 sidebar tabs, rounded cards, a topbar with window controls - but the code is
@@ -29,7 +29,7 @@ styling (no external image assets), and a small self-contained surface.
 ## Usage
 
 ```lua
-local SerhiiUI = loadstring(game:HttpGet("<raw-url>/src/SerhiiUI.lua"))()
+local SerhiiUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/CoderSerg/serhiiui/refs/heads/main/src/SerhiiUI.lua"))()
 
 local Window = SerhiiUI:CreateWindow({
     Title = "My Hub",
@@ -56,7 +56,7 @@ Tab:Slider({
 ```
 
 See [`examples/demo.lua`](examples/demo.lua) for a full showcase, and
-the documentation website for more information.
+the [documentation website](https://coderserg.github.io/docs) for more information.
 
 ## Using in Roblox Studio
 
