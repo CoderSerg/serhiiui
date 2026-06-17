@@ -2377,7 +2377,7 @@ function Library:CreateWindow(config)
 		ScrollBarThickness = 0,
 		ScrollingDirection = Enum.ScrollingDirection.Y,
 		CanvasSize = UDim2.new(0, 0, 0, 0),
-		AutomaticCanvasSize = Enum.AutomaticCanvasSize.Y,
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
 		Parent = root,
 	}, {
 		listLayout(4),
