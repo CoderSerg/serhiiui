@@ -292,7 +292,7 @@
         tabs, rounded cards, a topbar with window controls, 11 themes, Lucide icons, an
         optional key system, and opt-in config saving. One file, no build step, no asset
         downloads.</p>
-        <div class="code"><pre><code class="lua">local SerhiiUI = loadstring(game:HttpGet("&lt;raw-url&gt;/src/SerhiiUI.lua"))()
+        <div class="code"><pre><code class="lua">local SerhiiUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/CoderSerg/serhiiui/refs/heads/main/src/SerhiiUI.lua"))()
 
 local Window = SerhiiUI:CreateWindow({ Title = "My Hub", SubTitle = "v1.0" })
 local Tab = Window:Tab({ Title = "Main" })
@@ -325,7 +325,7 @@ end })</code></pre></div>
         <h2>Installation</h2>
         <h3>Executor</h3>
         <p>Load the single file at runtime - it returns the library table:</p>
-        <div class="code"><pre><code class="lua">local SerhiiUI = loadstring(game:HttpGet("&lt;raw-url&gt;/src/SerhiiUI.lua"))()</code></pre></div>
+        <div class="code"><pre><code class="lua">local SerhiiUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/CoderSerg/serhiiui/refs/heads/main/src/SerhiiUI.lua"))()</code></pre></div>
 
         <h3>Roblox Studio</h3>
         <p>The same file works as a <b>ModuleScript</b> (it <code>return</code>s the library).</p>
@@ -344,7 +344,7 @@ do
     if moduleScript then
         SerhiiUI = require(moduleScript)
     else
-        SerhiiUI = loadstring(game:HttpGet("&lt;raw-url&gt;/src/SerhiiUI.lua"))()
+        SerhiiUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/CoderSerg/serhiiui/refs/heads/main/src/SerhiiUI.lua"))()
     end
 end</code></pre></div>
         <div class="note"><p>Executor-only features degrade gracefully in Studio / live games:
@@ -356,7 +356,7 @@ end</code></pre></div>
       <!-- QUICK START -->
       <section id="quickstart">
         <h2>Quick start</h2>
-        <div class="code"><pre><code class="lua">local SerhiiUI = loadstring(game:HttpGet("&lt;raw-url&gt;/src/SerhiiUI.lua"))()
+        <div class="code"><pre><code class="lua">local SerhiiUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/CoderSerg/serhiiui/refs/heads/main/src/SerhiiUI.lua"))()
 
 local Window = SerhiiUI:CreateWindow({
     Title = "My Hub",
