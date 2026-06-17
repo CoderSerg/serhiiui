@@ -1,5 +1,7 @@
 # SerhiiUI
 
+> **BETA, EXTREMELY BUGGY!** Use if you want issues (send them to me)
+
 ![Serhii UI](https://img.shields.io/badge/Serhii-UI-8b5cf6?style=for-the-badge)
 
 A modern UI library for Roblox scripts, written in Luau.
