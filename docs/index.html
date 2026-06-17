@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SerhiiUI - modern Roblox UI library</title>
+<meta name="description" content="SerhiiUI - a modern, self-contained UI library for Roblox script hubs. Windows, tabs, toggles, sliders, dropdowns, themes, icons, key system, config saving." />
+<style>
+  :root {
+    --bg: #18181b;
+    --bg-2: #141417;
+    --element: #232328;
+    --element-hover: #2c2c33;
+    --stroke: rgba(255, 255, 255, 0.08);
+    --stroke-strong: rgba(255, 255, 255, 0.14);
+    --text: #f4f4f5;
+    --subtext: #a1a1aa;
+    --accent: #8b5cf6;
+    --accent-soft: rgba(139, 92, 246, 0.14);
+    --radius: 12px;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+    /* syntax */
+    --t-comment: #6b7280;
+    --t-string: #a7e08a;
+    --t-number: #f0a868;
+    --t-keyword: #b794f6;
+    --t-const: #f59e0b;
+    --t-builtin: #5ed3f4;
+    --t-func: #93b4ff;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 24px; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  /* ---------- layout ---------- */
+  .layout { display: flex; min-height: 100vh; }
+
+  .sidebar {
+    width: 256px;
+    flex-shrink: 0;
+    background: var(--bg-2);
+    border-right: 1px solid var(--stroke);
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 22px 14px 40px;
+  }
+  .sidebar::-webkit-scrollbar { width: 6px; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--element-hover); border-radius: 3px; }
+
+  .brand {
+    display: flex; align-items: center; gap: 11px;
+    padding: 4px 10px 18px;
+  }
+  .brand .logo {
+    width: 34px; height: 34px; border-radius: 9px;
+    background: linear-gradient(135deg, var(--accent), #c4b5fd);
+    display: grid; place-items: center;
+    font-weight: 800; color: #fff; font-size: 18px;
+    box-shadow: 0 4px 14px var(--accent-soft);
+  }
+  .brand b { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+  .brand small { display: block; color: var(--subtext); font-size: 11.5px; font-weight: 500; }
+
+  .nav-group { margin-top: 16px; }
+  .nav-group h4 {
+    margin: 0 0 6px; padding: 0 12px;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--subtext); font-weight: 700;
+  }
+  .nav a {
+    display: block; padding: 6px 12px; border-radius: 8px;
+    color: var(--subtext); font-size: 14px; font-weight: 500;
+    transition: background .14s, color .14s;
+  }
+  .nav a:hover { background: var(--element); color: var(--text); }
+  .nav a.active { background: var(--accent-soft); color: var(--text); box-shadow: inset 2px 0 0 var(--accent); }
+
+  .content { flex: 1; min-width: 0; }
+  .container { max-width: 860px; margin: 0 auto; padding: 56px 40px 120px; }
+
+  /* ---------- type ---------- */
+  h1 { font-size: 40px; line-height: 1.1; letter-spacing: -0.03em; margin: 0 0 14px; }
+  h2 {
+    font-size: 26px; letter-spacing: -0.02em; margin: 56px 0 14px;
+    padding-top: 10px; scroll-margin-top: 20px;
+  }
+  h3 { font-size: 18px; margin: 30px 0 10px; letter-spacing: -0.01em; }
+  p { margin: 0 0 14px; color: #d4d4d8; }
+  .muted { color: var(--subtext); }
+  section > p code, li code, td code, p code { color: #e9d5ff; }
+  code:not(pre code) {
+    font-family: var(--mono); font-size: 0.86em;
+    background: var(--element); border: 1px solid var(--stroke);
+    padding: 1px 6px; border-radius: 6px; white-space: nowrap;
+  }
+  ul, ol { padding-left: 22px; margin: 0 0 16px; }
+  li { margin: 5px 0; color: #d4d4d8; }
+  hr { border: none; border-top: 1px solid var(--stroke); margin: 40px 0; }
+
+  .lead { font-size: 18px; color: var(--subtext); max-width: 640px; }
+
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 26px; }
+  .badge {
+    font-size: 12px; font-weight: 600; padding: 4px 11px; border-radius: 999px;
+    background: var(--element); border: 1px solid var(--stroke); color: var(--subtext);
+  }
+  .badge.accent { background: var(--accent-soft); border-color: transparent; color: #ddd6fe; }
+
+  /* ---------- code ---------- */
+  .code {
+    position: relative; margin: 0 0 18px;
+    background: #121215; border: 1px solid var(--stroke);
+    border-radius: var(--radius); overflow: hidden;
+  }
+  .code pre { margin: 0; padding: 16px 18px; overflow-x: auto; }
+  .code code { font-family: var(--mono); font-size: 13px; line-height: 1.7; color: #e4e4e7; }
+  .code .copy {
+    position: absolute; top: 9px; right: 9px;
+    background: var(--element); border: 1px solid var(--stroke); color: var(--subtext);
+    font-size: 11px; font-weight: 600; padding: 4px 9px; border-radius: 7px; cursor: pointer;
+    opacity: 0; transition: opacity .15s, color .15s, background .15s;
+  }
+  .code:hover .copy { opacity: 1; }
+  .code .copy:hover { color: var(--text); background: var(--element-hover); }
+  .code .copy.done { color: #86efac; }
+
+  .tok-c { color: var(--t-comment); font-style: italic; }
+  .tok-s { color: var(--t-string); }
+  .tok-n { color: var(--t-number); }
+  .tok-k { color: var(--t-keyword); }
+  .tok-b { color: var(--t-const); }
+  .tok-t { color: var(--t-builtin); }
+  .tok-f { color: var(--t-func); }
+
+  /* ---------- cards / tables ---------- */
+  .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); margin: 0 0 8px; }
+  .card {
+    background: var(--element); border: 1px solid var(--stroke);
+    border-radius: var(--radius); padding: 16px 18px;
+  }
+  .card h4 { margin: 0 0 5px; font-size: 15px; }
+  .card p { margin: 0; font-size: 13.5px; color: var(--subtext); }
+
+  table { width: 100%; border-collapse: collapse; margin: 0 0 18px; font-size: 14px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--stroke); vertical-align: top; }
+  th { color: var(--subtext); font-weight: 600; font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.04em; }
+  td:first-child code { color: #e9d5ff; }
+  .t-type { color: var(--t-builtin); font-family: var(--mono); font-size: 12.5px; white-space: nowrap; }
+
+  .api {
+    background: var(--element); border: 1px solid var(--stroke);
+    border-radius: var(--radius); padding: 4px 18px; margin: 0 0 18px;
+  }
+  .api table { margin: 0; table-layout: fixed; }
+  .api td, .api th { vertical-align: middle; }
+  .api th:first-child, .api td:first-child { width: 65%; }
+  /* slightly smaller call font so even the long lists fit on one line;
+     white-space:normal is a safety net so they wrap rather than overflow */
+  .api td:first-child code { white-space: normal; font-size: 12px; }
+  .api td:last-child, .api th:last-child {
+    text-align: left; padding-left: 24px;
+    color: var(--subtext); line-height: 1.5;
+  }
+  .api tr:last-child td { border-bottom: none; }
+
+  .note {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-soft);
+    border-radius: 0 10px 10px 0;
+    padding: 12px 16px; margin: 0 0 18px;
+  }
+  .note p { margin: 0; color: #ede9fe; font-size: 14px; }
+  .note.warn { border-left-color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
+  .note.warn p { color: #fde9c8; }
+  .note.warn strong { color: #fbbf24; }
+
+  /* ---------- themes ---------- */
+  .themes { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); margin: 0 0 18px; }
+  .swatch {
+    border: 1px solid var(--stroke); border-radius: var(--radius);
+    overflow: hidden; cursor: pointer; transition: transform .12s, border-color .12s;
+  }
+  .swatch:hover { transform: translateY(-2px); border-color: var(--stroke-strong); }
+  .swatch .preview { height: 64px; position: relative; }
+  .swatch .dot { position: absolute; left: 12px; bottom: 12px; width: 22px; height: 22px; border-radius: 7px; box-shadow: 0 2px 8px rgba(0,0,0,.4); }
+  .swatch .meta { padding: 8px 12px; background: var(--element); }
+  .swatch .meta b { font-size: 13.5px; }
+  .swatch .meta span { display: block; font-size: 11px; color: var(--subtext); font-family: var(--mono); }
+
+  .el-sig { font-family: var(--mono); font-size: 13px; color: var(--t-func); margin: 0 0 6px; }
+
+  /* ---------- topbar (mobile) ---------- */
+  .topbar { display: none; }
+
+  footer { border-top: 1px solid var(--stroke); margin-top: 70px; padding-top: 24px; color: var(--subtext); font-size: 13.5px; }
+  footer a { color: var(--accent); }
+
+  @media (max-width: 920px) {
+    .sidebar {
+      position: fixed; left: 0; top: 0; z-index: 50;
+      transform: translateX(-100%); transition: transform .22s ease;
+      box-shadow: 0 0 40px rgba(0,0,0,.5);
+    }
+    .sidebar.open { transform: translateX(0); }
+    .topbar {
+      display: flex; align-items: center; gap: 12px;
+      position: sticky; top: 0; z-index: 40;
+      padding: 12px 18px; background: rgba(24,24,27,.85);
+      backdrop-filter: blur(10px); border-bottom: 1px solid var(--stroke);
+    }
+    .topbar button { background: var(--element); border: 1px solid var(--stroke); color: var(--text); border-radius: 8px; width: 36px; height: 36px; font-size: 18px; cursor: pointer; }
+    .topbar b { font-size: 16px; }
+    .container { padding: 32px 22px 100px; }
+    h1 { font-size: 32px; }
+    .scrim { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 45; }
+    .scrim.show { display: block; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <button id="menuBtn" aria-label="Menu">☰</button>
+  <b>SerhiiUI</b>
+</div>
+<div class="scrim" id="scrim"></div>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="logo">S</div>
+      <div><b>SerhiiUI</b><small>Roblox UI library · beta</small></div>
+    </div>
+    <nav class="nav">
+      <div class="nav-group">
+        <h4>Start</h4>
+        <a href="#overview">Overview</a>
+        <a href="#features">Features</a>
+        <a href="#install">Installation</a>
+        <a href="#quickstart">Quick start</a>
+      </div>
+      <div class="nav-group">
+        <h4>Building UI</h4>
+        <a href="#window">Window</a>
+        <a href="#tabs">Tabs</a>
+        <a href="#elements">Elements</a>
+        <a href="#notifications">Notifications</a>
+      </div>
+      <div class="nav-group">
+        <h4>Systems</h4>
+        <a href="#themes">Themes</a>
+        <a href="#icons">Icons</a>
+        <a href="#keysystem">Key system</a>
+        <a href="#config">Config saving</a>
+      </div>
+      <div class="nav-group">
+        <h4>Reference</h4>
+        <a href="#security">⚠ Use in your game</a>
+        <a href="#api">API reference</a>
+      </div>
+    </nav>
+  </aside>
+
+  <main class="content">
+    <div class="container">
+
+      <!-- OVERVIEW -->
+      <section id="overview">
+        <div class="badges">
+          <span class="badge accent">beta · v0.1.0</span>
+          <span class="badge">Luau</span>
+          <span class="badge">Single file</span>
+          <span class="badge">No dependencies</span>
+          <span class="badge">MIT</span>
+        </div>
+        <h1>SerhiiUI</h1>
+        <p class="lead">A modern, self-contained UI library for Roblox script hubs - sidebar
+        tabs, rounded cards, a topbar with window controls, 11 themes, Lucide icons, an
+        optional key system, and opt-in config saving. One file, no build step, no asset
+        downloads.</p>
+        <div class="code"><pre><code class="lua">local SerhiiUI = loadstring(game:HttpGet("&lt;raw-url&gt;/src/SerhiiUI.lua"))()
+
+local Window = SerhiiUI:CreateWindow({ Title = "My Hub", SubTitle = "v1.0" })
+local Tab = Window:Tab({ Title = "Main" })
+
+Tab:Button({ Title = "Click me", Callback = function()
+    SerhiiUI:Notify({ Title = "Hi", Content = "It works!" })
+end })</code></pre></div>
+        <p class="muted">Inspired by the look &amp; feel of WindUI, but original code with its own
+        identity: a violet accent and native <code>UICorner</code>/<code>UIStroke</code> styling
+        (no external image assets).</p>
+      </section>
+
+      <!-- FEATURES -->
+      <section id="features">
+        <h2>Features</h2>
+        <div class="grid">
+          <div class="card"><h4>13 elements</h4><p>Section, Divider, Space, Text, Paragraph, Button, Toggle, Slider, Input, Dropdown, Keybind, Colorpicker, Code.</p></div>
+          <div class="card"><h4>Optional tabs</h4><p>Use a sidebar of tabs, or drop elements straight onto the window with no sidebar.</p></div>
+          <div class="card"><h4>11 themes</h4><p>Dark (default), Light, Aqua, Rose, Emerald, Indigo, Amber, Crimson, Midnight, Mocha, Neon - list, create, set, remove, live-switch.</p></div>
+          <div class="card"><h4>Lucide icons</h4><p>Reference icons by name (<code>Icon = "house"</code>) on the window, tabs and most elements. Rendered crisp.</p></div>
+          <div class="card"><h4>Key system</h4><p>Optional gate that blocks the window until a valid key is entered, with save &amp; validator support.</p></div>
+          <div class="card"><h4>Config saving</h4><p>Opt-in. Flagged elements persist to disk; values round-trip through JSON.</p></div>
+          <div class="card"><h4>Notifications</h4><p>Toasts that slide in from the top-right and auto-dismiss.</p></div>
+          <div class="card"><h4>Studio &amp; executor</h4><p>Doubles as a Studio ModuleScript; executor-only features degrade gracefully.</p></div>
+        </div>
+      </section>
+
+      <!-- INSTALL -->
+      <section id="install">
+        <h2>Installation</h2>
+        <h3>Executor</h3>
+        <p>Load the single file at runtime - it returns the library table:</p>
+        <div class="code"><pre><code class="lua">local SerhiiUI = loadstring(game:HttpGet("&lt;raw-url&gt;/src/SerhiiUI.lua"))()</code></pre></div>
+
+        <h3>Roblox Studio</h3>
+        <p>The same file works as a <b>ModuleScript</b> (it <code>return</code>s the library).</p>
+        <ol>
+          <li>Create a <b>ModuleScript</b> named <code>SerhiiUI</code> in <b>ReplicatedStorage</b> and paste in the source.</li>
+          <li>From a <b>LocalScript</b> (e.g. in <code>StarterPlayerScripts</code>), require it.</li>
+        </ol>
+        <div class="code"><pre><code class="lua">local SerhiiUI = require(game:GetService("ReplicatedStorage").SerhiiUI)
+local Window = SerhiiUI:CreateWindow({ Title = "My Hub" })</code></pre></div>
+        <p>The library auto-detects Studio and parents its GUI to <b>PlayerGui</b> (a normal
+        LocalScript can't write to <code>CoreGui</code>). A dual loader that works in both
+        environments:</p>
+        <div class="code"><pre><code class="lua">local SerhiiUI
+do
+    local moduleScript = game:GetService("ReplicatedStorage"):FindFirstChild("SerhiiUI")
+    if moduleScript then
+        SerhiiUI = require(moduleScript)
+    else
+        SerhiiUI = loadstring(game:HttpGet("&lt;raw-url&gt;/src/SerhiiUI.lua"))()
+    end
+end</code></pre></div>
+        <div class="note"><p>Executor-only features degrade gracefully in Studio / live games:
+        named Lucide icons (need <code>HttpGet</code>+<code>loadstring</code>), config saving and
+        key persistence (need <code>writefile</code>/<code>readfile</code>) become no-ops - the UI
+        still builds. See <a href="#icons" style="color:#ddd6fe">Icons</a> for the in-game fix.</p></div>
+      </section>
+
+      <!-- QUICK START -->
+      <section id="quickstart">
+        <h2>Quick start</h2>
+        <div class="code"><pre><code class="lua">local SerhiiUI = loadstring(game:HttpGet("&lt;raw-url&gt;/src/SerhiiUI.lua"))()
+
+local Window = SerhiiUI:CreateWindow({
+    Title = "My Hub",
+    SubTitle = "v1.0",
+    Icon = "panels-top-left",
+    Size = UDim2.fromOffset(580, 440),
+    ToggleKey = Enum.KeyCode.RightControl,
+})
+
+local Tab = Window:Tab({ Title = "Main", Icon = "house" })
+
+Tab:Toggle({ Title = "Feature", Default = false, Callback = function(on)
+    print("feature:", on)
+end })
+
+Tab:Slider({
+    Title = "Amount",
+    Value = { Min = 0, Max = 100, Default = 50 },
+    Step = 1,
+    Callback = function(v) print(v) end,
+})
+
+SerhiiUI:Notify({ Title = "Loaded", Content = "Ready!", Duration = 4 })</code></pre></div>
+      </section>
+
+      <!-- WINDOW -->
+      <section id="window">
+        <h2>Window</h2>
+        <p><code>SerhiiUI:CreateWindow(config)</code> returns a <code>Window</code>. (Returns
+        <code>nil</code> if a key-system gate is cancelled.)</p>
+        <table>
+          <thead><tr><th>Option</th><th>Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>Title</code></td><td class="t-type">string</td><td>Window title (topbar).</td></tr>
+            <tr><td><code>SubTitle</code></td><td class="t-type">string</td><td>Small text under the title.</td></tr>
+            <tr><td><code>Icon</code></td><td class="t-type">string</td><td>Lucide name or <code>rbxassetid://</code> for the title icon.</td></tr>
+            <tr><td><code>IconSize</code></td><td class="t-type">number</td><td>Title icon size in px (default 22).</td></tr>
+            <tr><td><code>Size</code></td><td class="t-type">UDim2</td><td>Window size (default <code>UDim2.fromOffset(560,420)</code>).</td></tr>
+            <tr><td><code>Position</code></td><td class="t-type">UDim2</td><td>Initial position (default centered).</td></tr>
+            <tr><td><code>Radius</code></td><td class="t-type">number</td><td>Corner radius (default 12).</td></tr>
+            <tr><td><code>SidebarWidth</code></td><td class="t-type">number</td><td>Tab sidebar width (default 168).</td></tr>
+            <tr><td><code>ToggleKey</code></td><td class="t-type">Enum.KeyCode</td><td>Show/hide key (default <code>RightControl</code>).</td></tr>
+            <tr><td><code>ConfigFolder</code></td><td class="t-type">string</td><td>Enables <code>Window.Config</code> (executor only).</td></tr>
+            <tr><td><code>KeySystem</code></td><td class="t-type">table</td><td>Optional key gate - see <a href="#keysystem" style="color:#e9d5ff">Key system</a>.</td></tr>
+          </tbody>
+        </table>
+        <h3>Window methods</h3>
+        <div class="api"><table><tbody>
+          <tr><td><code>Window:Tab(config)</code></td><td class="muted">create a sidebar tab</td></tr>
+          <tr><td><code>Window:SelectTab(index)</code></td><td class="muted">switch active tab</td></tr>
+          <tr><td><code>Window:Minimize()</code></td><td class="muted">collapse to the floating button</td></tr>
+          <tr><td><code>Window:Open()</code></td><td class="muted">restore</td></tr>
+          <tr><td><code>Window:Close()</code></td><td class="muted">animate out &amp; destroy</td></tr>
+          <tr><td><code>Window:Destroy()</code></td><td class="muted">tear down + disconnect signals</td></tr>
+          <tr><td><code>Window.Config</code></td><td class="muted">config manager (if <code>ConfigFolder</code> set)</td></tr>
+        </tbody></table></div>
+      </section>
+
+      <!-- TABS -->
+      <section id="tabs">
+        <h2>Tabs</h2>
+        <p>Tabs are <b>optional</b>. Create as many as you like:</p>
+        <div class="code"><pre><code class="lua">local Tab = Window:Tab({ Title = "Settings", Icon = "settings" })
+Tab:Button({ Title = "Do thing", Callback = function() end })</code></pre></div>
+        <p>Or skip tabs entirely - every element also exists on the <code>Window</code>. Calling
+        them on the window appends to an implicit full-width "Main" page and the sidebar
+        stays hidden:</p>
+        <div class="code"><pre><code class="lua">local Window = SerhiiUI:CreateWindow({ Title = "Simple" })
+Window:Toggle({ Title = "No tabs needed", Callback = function(v) print(v) end })
+Window:Button({ Title = "Straight on the window" })</code></pre></div>
+      </section>
+
+      <!-- ELEMENTS -->
+      <section id="elements">
+        <h2>Elements</h2>
+        <p>Every element exists on both <code>Tab</code> and <code>Window</code>. Stateful ones
+        return an object with <code>:Set(value[, fireCallback])</code> and <code>:Get()</code>;
+        give any of them a <code>Flag</code> to make them config-savable. Most accept an
+        <code>Icon</code> (Lucide name).</p>
+
+        <h3>Section</h3>
+        <p class="el-sig">Tab:Section({ Title, TextSize })</p>
+        <p>An uppercase header that groups the elements below it.</p>
+        <div class="code"><pre><code class="lua">Tab:Section({ Title = "Combat" })</code></pre></div>
+
+        <h3>Divider &amp; Space</h3>
+        <p class="el-sig">Tab:Divider()  ·  Tab:Space({ Height })</p>
+        <p>A thin horizontal line, and an empty vertical gap (default 6px).</p>
+        <div class="code"><pre><code class="lua">Tab:Divider()
+Tab:Space({ Height = 12 })</code></pre></div>
+
+        <h3>Text</h3>
+        <p class="el-sig">Tab:Text({ Title|Text, Muted, Color, Align, TextSize, FontWeight })</p>
+        <p>A free-standing paragraph. Supports rich text. <code>Align</code> is
+        <code>"Left"</code>, <code>"Center"</code> or <code>"Right"</code>.</p>
+        <div class="code"><pre><code class="lua">Tab:Text({ Title = "Supports &lt;b&gt;rich text&lt;/b&gt; and colors.", Muted = true })</code></pre></div>
+
+        <h3>Paragraph</h3>
+        <p class="el-sig">Tab:Paragraph({ Title, Desc, Icon })</p>
+        <p>A titled card with a description body (no control).</p>
+        <div class="code"><pre><code class="lua">Tab:Paragraph({
+    Title = "About",
+    Icon = "info",
+    Desc = "A clean UI library for Roblox script hubs.",
+})</code></pre></div>
+
+        <h3>Button</h3>
+        <p class="el-sig">Tab:Button({ Title, Desc, Icon, Callback })</p>
+        <p>A clickable card. <code>Callback()</code> runs on click.</p>
+        <div class="code"><pre><code class="lua">Tab:Button({ Title = "Notify", Icon = "bell", Callback = function()
+    SerhiiUI:Notify({ Title = "Clicked", Content = "Hello!" })
+end })</code></pre></div>
+
+        <h3>Toggle</h3>
+        <p class="el-sig">Tab:Toggle({ Title, Desc, Icon, Default, Flag, Callback })  →  :Set / :Get</p>
+        <p><code>Callback(value)</code> fires with the boolean state.</p>
+        <div class="code"><pre><code class="lua">local t = Tab:Toggle({
+    Title = "Enable feature",
+    Default = false,
+    Flag = "FeatureEnabled",
+    Callback = function(on) print("feature:", on) end,
+})
+t:Set(true)        -- update programmatically
+print(t:Get())     -- read current value</code></pre></div>
+
+        <h3>Slider</h3>
+        <p class="el-sig">Tab:Slider({ Title, Desc, Icon, Value = {Min, Max, Default}, Step, Flag, Callback })  →  :Set / :Get</p>
+        <p><code>Callback(number)</code> fires as the value changes.</p>
+        <div class="code"><pre><code class="lua">Tab:Slider({
+    Title = "Walk speed",
+    Icon = "gauge",
+    Value = { Min = 16, Max = 200, Default = 16 },
+    Step = 1,
+    Flag = "WalkSpeed",
+    Callback = function(v)
+        local hum = game.Players.LocalPlayer.Character
+            and game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then hum.WalkSpeed = v end
+    end,
+})</code></pre></div>
+
+        <h3>Input</h3>
+        <p class="el-sig">Tab:Input({ Title, Desc, Icon, Placeholder, Default, Flag, Callback })  →  :Set / :Get</p>
+        <p><code>Callback(text, enterPressed)</code> fires when the box loses focus.</p>
+        <div class="code"><pre><code class="lua">Tab:Input({
+    Title = "Name",
+    Placeholder = "type here…",
+    Flag = "Name",
+    Callback = function(text, enter) print(text, enter) end,
+})</code></pre></div>
+
+        <h3>Dropdown</h3>
+        <p class="el-sig">Tab:Dropdown({ Title, Desc, Icon, Values, Default, Multi, Flag, Callback })  →  :Set / :Get</p>
+        <p>Single-select fires <code>Callback(value)</code>; with <code>Multi = true</code> it
+        fires <code>Callback(selectedSet)</code> (a map of <code>value → true</code>). Values may
+        be strings or tables <code>{ Title, Desc, Icon, Callback }</code>.</p>
+        <div class="code"><pre><code class="lua">Tab:Dropdown({
+    Title = "Targets",
+    Icon = "users",
+    Values = { "Players", "NPCs", "Items" },
+    Multi = true,
+    Flag = "Targets",
+    Callback = function(selected)
+        for value in pairs(selected) do print("on:", value) end
+    end,
+})</code></pre></div>
+
+        <h3>Keybind</h3>
+        <p class="el-sig">Tab:Keybind({ Title, Desc, Icon, Default, Flag, Callback })  →  :Set / :Get</p>
+        <p><code>Default</code> is an <code>Enum.KeyCode</code> or its name. Click the chip, then
+        press a key to rebind (Backspace / Escape clears). <code>Callback(keycode)</code> fires
+        when the bound key is pressed.</p>
+        <div class="code"><pre><code class="lua">Tab:Keybind({
+    Title = "Fly",
+    Icon = "keyboard",
+    Default = Enum.KeyCode.F,
+    Flag = "FlyBind",
+    Callback = function() print("fly pressed") end,
+})</code></pre></div>
+
+        <h3>Colorpicker</h3>
+        <p class="el-sig">Tab:Colorpicker({ Title, Desc, Icon, Default, Flag, Callback })  →  :Set / :Get</p>
+        <p>An inline HSV picker (saturation/value square + hue bar). <code>Callback(Color3)</code>.</p>
+        <div class="code"><pre><code class="lua">Tab:Colorpicker({
+    Title = "ESP color",
+    Icon = "paintbrush",
+    Default = Color3.fromRGB(139, 92, 246),
+    Flag = "EspColor",
+    Callback = function(c) print("color:", c) end,
+})</code></pre></div>
+
+        <h3>Code</h3>
+        <p class="el-sig">Tab:Code({ Title, Code })</p>
+        <p>A monospace code block with a copy button (clipboard is shimmed - a no-op where no
+        clipboard API exists).</p>
+        <div class="code"><pre><code class="lua">Tab:Code({
+    Title = "loadstring",
+    Code = 'loadstring(game:HttpGet("...SerhiiUI.lua"))()',
+})</code></pre></div>
+      </section>
+
+      <!-- NOTIFICATIONS -->
+      <section id="notifications">
+        <h2>Notifications</h2>
+        <p>Toasts stack in the top-right and auto-dismiss after <code>Duration</code> seconds
+        (default 4).</p>
+        <div class="code"><pre><code class="lua">SerhiiUI:Notify({
+    Title = "Saved",
+    Content = "Your config was written to disk.",
+    Duration = 5,
+})</code></pre></div>
+      </section>
+
+      <!-- THEMES -->
+      <section id="themes">
+        <h2>Themes</h2>
+        <p>11 built-in themes (<b>Dark</b> is the default). Click a swatch to preview its accent
+        on this page.</p>
+        <div class="themes" id="themeGrid"></div>
+        <h3>Theme management</h3>
+        <div class="api"><table><tbody>
+          <tr><td><code>SerhiiUI:GetThemes()</code></td><td class="muted">sorted list of names (Dark, Light first)</td></tr>
+          <tr><td><code>SerhiiUI:GetTheme()</code></td><td class="muted">current theme name</td></tr>
+          <tr><td><code>SerhiiUI:SetTheme(name)</code></td><td class="muted">switch live (tweens colors)</td></tr>
+          <tr><td><code>SerhiiUI:CreateTheme(name, spec)</code></td><td class="muted">build from a short color spec</td></tr>
+          <tr><td><code>SerhiiUI:AddTheme(fullTable)</code></td><td class="muted">register a fully-specified theme</td></tr>
+          <tr><td><code>SerhiiUI:RemoveTheme(name)</code></td><td class="muted">remove (Dark can't be removed)</td></tr>
+        </tbody></table></div>
+        <div class="code"><pre><code class="lua">-- A theme dropdown that switches live:
+Tab:Dropdown({
+    Title = "Theme",
+    Values = SerhiiUI:GetThemes(),
+    Default = "Dark",
+    Callback = function(name) SerhiiUI:SetTheme(name) end,
+})
+
+-- Make your own from a short spec (the helper fills the rest):
+SerhiiUI:CreateTheme("Sunset", {
+    Background = Color3.fromHex("#1a0f0a"),
+    Element = Color3.fromHex("#2a1810"),
+    ElementHover = Color3.fromHex("#3a2216"),
+    Text = Color3.fromHex("#fff4ed"),
+    SubText = Color3.fromHex("#d09a6f"),
+    Accent = Color3.fromHex("#fb923c"),
+})</code></pre></div>
+      </section>
+
+      <!-- ICONS -->
+      <section id="icons">
+        <h2>Icons</h2>
+        <p>Reference <b>Lucide icons by name</b> on the window, tabs and most elements:</p>
+        <div class="code"><pre><code class="lua">Window:Tab({ Title = "Home", Icon = "house" })
+Tab:Button({ Title = "Play", Icon = "play" })</code></pre></div>
+        <p>Names are resolved from a remote Lucide pack the first time they're used and cached.
+        Direct <code>rbxassetid://</code> strings pass straight through.</p>
+
+        <h3>Custom icons (and the in-game fix)</h3>
+        <p>In Studio and <b>published games</b>, the remote pack can't load (the client has no
+        <code>HttpGet</code>/<code>loadstring</code>), so named icons are skipped. Register your
+        own image assets by name - these win over the pack and never touch the network:</p>
+        <div class="code"><pre><code class="lua">SerhiiUI:AddIcons({
+    shield = "rbxassetid://10709810572",  -- string id
+    boot   = 10709790644,                 -- number id
+    glyph  = { Image = "rbxassetid://1", RectOffset = Vector2.new(0,0), RectSize = Vector2.new(48,48) },
+})
+SerhiiUI:CreateWindow({ Title = "Hub", Icon = "shield" })</code></pre></div>
+        <p><code>SerhiiUI:GetIcon(name)</code> returns <code>{ Image, RectOffset, RectSize }</code>
+        or <code>nil</code> if it can't be resolved.</p>
+        <div class="note"><p><b>Why they stay crisp:</b> the window root is a plain
+        <code>Frame</code>, never a <code>CanvasGroup</code> (CanvasGroups flatten their
+        children into one texture and soften every icon and glyph). Icons use
+        <code>ScaleType = Fit</code> and are only ever downscaled.</p></div>
+      </section>
+
+      <!-- KEY SYSTEM -->
+      <section id="keysystem">
+        <h2>Key system</h2>
+        <p>An optional gate shown before the window loads. It blocks until a valid key is
+        entered; if the user cancels, <code>CreateWindow</code> returns <code>nil</code>.</p>
+        <table>
+          <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>Title</code></td><td class="t-type">string</td><td>Heading on the prompt.</td></tr>
+            <tr><td><code>Note</code></td><td class="t-type">string</td><td>Sub-text under the heading.</td></tr>
+            <tr><td><code>Key</code></td><td class="t-type">string | table</td><td>A key, or a list of accepted keys.</td></tr>
+            <tr><td><code>Validator</code></td><td class="t-type">function</td><td><code>(input) → boolean</code>; overrides <code>Key</code>.</td></tr>
+            <tr><td><code>SaveKey</code></td><td class="t-type">boolean</td><td>Remember a valid key (executor file API).</td></tr>
+            <tr><td><code>Folder</code></td><td class="t-type">string</td><td>Folder for the saved key.</td></tr>
+            <tr><td><code>GetKey</code></td><td class="t-type">string</td><td>URL copied by a "Get Key" button.</td></tr>
+          </tbody>
+        </table>
+        <div class="code"><pre><code class="lua">local Window = SerhiiUI:CreateWindow({
+    Title = "My Hub",
+    KeySystem = {
+        Title = "My Hub",
+        Note = "Enter your key to continue.",
+        Key = { "serhii123", "vip-key" },
+        SaveKey = true,
+        Folder = "SerhiiUI",
+        GetKey = "https://example.com/getkey",
+    },
+})
+if not Window then return end  -- user cancelled the gate</code></pre></div>
+      </section>
+
+      <!-- CONFIG -->
+      <section id="config">
+        <h2>Config saving</h2>
+        <p>Opt-in, and entirely up to the script author: pass <code>ConfigFolder</code> to
+        <code>CreateWindow</code>, and give the elements you want saved a <code>Flag</code>.
+        Only flagged elements persist. Values round-trip through JSON - <code>Color3</code> and
+        <code>Enum.KeyCode</code> are tagged so they deserialize back to the right type.</p>
+        <div class="api"><table><tbody>
+          <tr><td><code>Window.Config:Save(name)</code></td><td class="muted">write all flagged values</td></tr>
+          <tr><td><code>Window.Config:Load(name)</code></td><td class="muted">restore them (applies callbacks)</td></tr>
+          <tr><td><code>Window.Config:List()</code></td><td class="muted">saved config names</td></tr>
+          <tr><td><code>Window.Config:Delete(name)</code></td><td class="muted">remove a saved config</td></tr>
+        </tbody></table></div>
+        <div class="code"><pre><code class="lua">local Window = SerhiiUI:CreateWindow({ Title = "Hub", ConfigFolder = "MyHub/configs" })
+local Tab = Window:Tab({ Title = "Main" })
+
+Tab:Toggle({ Title = "Aimbot", Flag = "Aimbot" })   -- saved (has Flag)
+Tab:Button({ Title = "Not saved" })                 -- not saved (no Flag)
+
+Tab:Button({ Title = "Save", Callback = function() Window.Config:Save("default") end })
+Tab:Button({ Title = "Load", Callback = function() Window.Config:Load("default") end })</code></pre></div>
+        <div class="note warn"><p><strong>In a published game</strong> these file APIs don't
+        exist, so save/load become no-ops. Use <b>DataStores</b> on the server for real
+        persistence.</p></div>
+      </section>
+
+      <!-- SECURITY -->
+      <section id="security">
+        <h2>⚠ Using this in your own game</h2>
+        <div class="note warn"><p><strong>SerhiiUI is a client-side UI library.</strong> Element
+        callbacks run on the player's own machine, so an exploiter can run them, fake their
+        inputs, or call your code directly. "The menu only opens for admins" is <b>not</b>
+        security - gating the UI client-side only hides it.</p></div>
+        <p>The only safe pattern for anything privileged (admin menus, shops, give-item):</p>
+        <ol>
+          <li>The client UI just <b>asks</b> the server - fire a <code>RemoteEvent</code>.</li>
+          <li>The <b>server independently verifies</b> the requester before acting. The server
+          is the source of truth. Clamp and sanitize everything the client sends.</li>
+        </ol>
+        <div class="code"><pre><code class="lua">-- CLIENT: the button only requests
+Tab:Button({ Title = "Kick", Callback = function()
+    AdminRemote:FireServer("kick", targetPlayer)
+end })
+
+-- SERVER: the server decides and acts
+AdminRemote.OnServerEvent:Connect(function(player, action, target)
+    if not isAdmin(player) then return end          -- re-check EVERY request
+    if action == "kick" and target:IsA("Player") then
+        target:Kick("Kicked by an admin.")
+    end
+end)</code></pre></div>
+        <p class="muted">A full, copy-pasteable client + server admin menu is in
+        <code>examples/admin.lua</code>.</p>
+      </section>
+
+      <!-- API -->
+      <section id="api">
+        <h2>API reference</h2>
+        <div class="api"><table>
+          <thead><tr><th>Call</th><th>Returns</th></tr></thead>
+          <tbody>
+            <tr><td><code>SerhiiUI:CreateWindow(config)</code></td><td class="muted">Window (or nil if a key gate is cancelled)</td></tr>
+            <tr><td><code>Window:Tab(config)</code></td><td class="muted">Tab (optional)</td></tr>
+            <tr><td><code>Tab:Section / :Divider / :Space / :Text / :Paragraph / :Code</code></td><td class="muted">element</td></tr>
+            <tr><td><code>Tab:Button / :Toggle / :Slider / :Input</code></td><td class="muted">element with :Set / :Get</td></tr>
+            <tr><td><code>Tab:Dropdown / :Keybind / :Colorpicker</code></td><td class="muted">element with :Set / :Get</td></tr>
+            <tr><td><code>Window:&lt;Element&gt;(config)</code></td><td class="muted">same elements, on the window</td></tr>
+            <tr><td><code>SerhiiUI:Notify(config)</code></td><td class="muted">-</td></tr>
+            <tr><td><code>SerhiiUI:GetThemes()</code></td><td class="muted">list of theme names</td></tr>
+            <tr><td><code>SerhiiUI:SetTheme / :CreateTheme / :AddTheme / :RemoveTheme</code></td><td class="muted">-</td></tr>
+            <tr><td><code>SerhiiUI:GetIcon(name)</code></td><td class="muted">{ Image, RectOffset, RectSize } or nil</td></tr>
+            <tr><td><code>SerhiiUI:AddIcons(map)</code></td><td class="muted">register custom name → assetId icons</td></tr>
+            <tr><td><code>Window.Config:Save / :Load / :List / :Delete</code></td><td class="muted">config persistence (flagged elements)</td></tr>
+            <tr><td><code>Window:SelectTab / :Minimize / :Open / :Close / :Destroy</code></td><td class="muted">-</td></tr>
+          </tbody>
+        </table></div>
+        <footer>
+          <p>SerhiiUI - MIT licensed. Built in Luau, inspired by WindUI, with its own identity.<br>
+          This page is generated from the project README and documents the full public API.</p>
+        </footer>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- Lua syntax highlighting ---------- */
+  var KEYWORDS = new Set(["and","break","do","else","elseif","end","for","function","if","in","local","not","or","repeat","return","then","until","while","continue"]);
+  var CONSTS = new Set(["true","false","nil"]);
+  var BUILTINS = new Set(["SerhiiUI","Window","Tab","Enum","Color3","UDim2","UDim","Vector2","Rect","game","Instance","task","math","string","table","pairs","ipairs","print","pcall","Players","ReplicatedStorage"]);
+
+  function esc(s) {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  function highlight(code) {
+    var re = /(--\[\[[\s\S]*?\]\])|(--[^\n]*)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(\b\d+\.?\d*\b)|([A-Za-z_]\w*)/g;
+    var out = "", last = 0, m;
+    while ((m = re.exec(code))) {
+      out += esc(code.slice(last, m.index));
+      last = re.lastIndex;
+      if (m[1] || m[2]) { out += '<span class="tok-c">' + esc(m[0]) + "</span>"; }
+      else if (m[3]) { out += '<span class="tok-s">' + esc(m[0]) + "</span>"; }
+      else if (m[4]) { out += '<span class="tok-n">' + esc(m[0]) + "</span>"; }
+      else {
+        var w = m[5];
+        var next = code.charAt(re.lastIndex);
+        if (KEYWORDS.has(w)) out += '<span class="tok-k">' + w + "</span>";
+        else if (CONSTS.has(w)) out += '<span class="tok-b">' + w + "</span>";
+        else if (BUILTINS.has(w)) out += '<span class="tok-t">' + w + "</span>";
+        else if (next === "(") out += '<span class="tok-f">' + esc(w) + "</span>";
+        else out += esc(w);
+      }
+    }
+    out += esc(code.slice(last));
+    return out;
+  }
+
+  document.querySelectorAll("code.lua").forEach(function (el) {
+    var raw = el.textContent;
+    el.innerHTML = highlight(raw);
+    // wrap in a .code container? (already wrapped) - add copy button
+    var box = el.closest(".code");
+    if (box && !box.querySelector(".copy")) {
+      var btn = document.createElement("button");
+      btn.className = "copy";
+      btn.textContent = "Copy";
+      btn.addEventListener("click", function () {
+        navigator.clipboard.writeText(raw).then(function () {
+          btn.textContent = "Copied!";
+          btn.classList.add("done");
+          setTimeout(function () { btn.textContent = "Copy"; btn.classList.remove("done"); }, 1400);
+        });
+      });
+      box.appendChild(btn);
+    }
+  });
+
+  /* ---------- theme swatches ---------- */
+  var THEMES = [
+    ["Dark", "#18181b", "#8b5cf6"], ["Light", "#f4f4f5", "#7c3aed"],
+    ["Aqua", "#0d1b1e", "#14b8a6"], ["Rose", "#1f0a12", "#f43f5e"],
+    ["Emerald", "#06140f", "#10b981"], ["Indigo", "#0f0f1f", "#6366f1"],
+    ["Amber", "#1c1404", "#f59e0b"], ["Crimson", "#160606", "#dc2626"],
+    ["Midnight", "#0a0f1e", "#2563eb"], ["Mocha", "#1a1410", "#c08457"],
+    ["Neon", "#0a0a12", "#e635c8"]
+  ];
+  var grid = document.getElementById("themeGrid");
+  THEMES.forEach(function (t) {
+    var name = t[0], bg = t[1], accent = t[2];
+    var el = document.createElement("div");
+    el.className = "swatch";
+    el.innerHTML =
+      '<div class="preview" style="background:' + bg + '"><div class="dot" style="background:' + accent + '"></div></div>' +
+      '<div class="meta"><b>' + name + '</b><span>' + accent + '</span></div>';
+    el.addEventListener("click", function () {
+      document.documentElement.style.setProperty("--accent", accent);
+      document.documentElement.style.setProperty("--accent-soft", accent + "24");
+    });
+    grid.appendChild(el);
+  });
+
+  /* ---------- active nav (scroll spy) ---------- */
+  var links = Array.prototype.slice.call(document.querySelectorAll(".nav a"));
+  var map = {};
+  links.forEach(function (a) { map[a.getAttribute("href").slice(1)] = a; });
+  var spy = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (e.isIntersecting) {
+        links.forEach(function (a) { a.classList.remove("active"); });
+        var a = map[e.target.id];
+        if (a) a.classList.add("active");
+      }
+    });
+  }, { rootMargin: "-10% 0px -80% 0px" });
+  document.querySelectorAll("section[id]").forEach(function (s) { spy.observe(s); });
+
+  /* ---------- mobile sidebar ---------- */
+  var sidebar = document.getElementById("sidebar");
+  var scrim = document.getElementById("scrim");
+  var menuBtn = document.getElementById("menuBtn");
+  function toggle(open) {
+    sidebar.classList.toggle("open", open);
+    scrim.classList.toggle("show", open);
+  }
+  if (menuBtn) menuBtn.addEventListener("click", function () { toggle(!sidebar.classList.contains("open")); });
+  if (scrim) scrim.addEventListener("click", function () { toggle(false); });
+  document.querySelectorAll(".nav a").forEach(function (a) {
+    a.addEventListener("click", function () { toggle(false); });
+  });
+})();
+</script>
+</body>
+</html>
