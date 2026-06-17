@@ -1934,7 +1934,7 @@ local function createTab(window, config)
 		ScrollBarImageTransparency = 0.5,
 		ScrollingDirection = Enum.ScrollingDirection.Y,
 		CanvasSize = UDim2.new(0, 0, 0, 0),
-		AutomaticCanvasSize = Enum.AutomaticCanvasSize.Y,
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
 		Visible = false,
 		Parent = window.ContentHolder,
 	}, {
