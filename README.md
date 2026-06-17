@@ -56,7 +56,7 @@ Tab:Slider({
 ```
 
 See [`examples/demo.lua`](examples/demo.lua) for a full showcase, and
-the [documentation website](https://coderserg.github.io/docs) for more information.
+the [documentation website](https://coderserg.github.io/serhiiui/) for more information.
 
 ## Using in Roblox Studio
 
