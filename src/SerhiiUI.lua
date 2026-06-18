@@ -42,8 +42,13 @@ local CoreGui = cloneref(game:GetService("CoreGui"))
 
 local FONT_FAMILY = "rbxasset://fonts/families/GothamSSm.json"
 
+-- The main font family is mutable via Library:SetFont. `fontObjects` tracks
+-- every text object built with the main font so SetFont can re-apply it.
+local fontFamily = FONT_FAMILY
+local fontObjects = {}
+
 local function font(weight)
-	return Font.new(FONT_FAMILY, weight or Enum.FontWeight.Medium)
+	return Font.new(fontFamily, weight or Enum.FontWeight.Medium)
 end
 
 local VERSION = "0.1.0-beta"
@@ -86,11 +91,11 @@ end
 
 local Themes = {
 	Dark = buildTheme("Dark", {
-		Background = hex("#18181b"), Sidebar = hex("#141417"),
-		Element = hex("#232328"), ElementHover = hex("#2c2c33"),
-		Text = hex("#f4f4f5"), SubText = hex("#a1a1aa"),
-		Accent = hex("#8b5cf6"), ToggleOff = hex("#3f3f46"),
-		TabActive = hex("#27272d"), Notification = hex("#1f1f23"),
+		Background = hex("#0f0f10"), Sidebar = hex("#0b0b0c"),
+		Element = hex("#1d1d20"), ElementHover = hex("#27272b"),
+		Text = hex("#fafafa"), SubText = hex("#9a9aa3"),
+		Accent = hex("#8b5cf6"), ToggleOff = hex("#3a3a40"),
+		TabActive = hex("#1f1f23"), Notification = hex("#161618"),
 	}),
 	Light = buildTheme("Light", {
 		Background = hex("#f4f4f5"), Sidebar = hex("#ececef"),
@@ -176,6 +181,15 @@ local Themes = {
 		Accent = hex("#e635c8"), ToggleOff = hex("#262640"),
 		Slider = hex("#22d3ee"), TabActive = hex("#19192b"),
 		Notification = hex("#101019"),
+	}),
+	["Cotton Candy"] = buildTheme("Cotton Candy", {
+		Background = hex("#1a0b2e"), Sidebar = hex("#150823"),
+		Element = hex("#312643"), ElementHover = hex("#3c2f52"),
+		Stroke = hex("#f9a8d4"), StrokeTransparency = 0.88,
+		Text = hex("#fdf2f8"), SubText = hex("#b79ad8"),
+		Accent = hex("#ec4899"), ToggleOff = hex("#3f2d57"),
+		Slider = hex("#d946ef"), TabActive = hex("#2a1d40"),
+		Notification = hex("#22102f"),
 	}),
 }
 
@@ -274,6 +288,18 @@ local function New(className, props, children)
 
 	if themeTag then
 		tag(object, themeTag)
+	end
+
+	-- Track text objects using the main font so SetFont can re-apply it.
+	-- Objects with a deliberately different family (e.g. the monospace Code
+	-- block) keep their own font and are skipped.
+	if className == "TextLabel" or className == "TextButton" or className == "TextBox" then
+		local ok, fam = pcall(function()
+			return object.FontFace.Family
+		end)
+		if ok and fam == fontFamily then
+			table.insert(fontObjects, object)
+		end
 	end
 
 	return object
@@ -555,9 +581,36 @@ local function makeIcon(name, sizeUDim, themeKey, color)
 	return img
 end
 
+-- Swap an existing icon ImageLabel to a different Lucide icon (used to flip
+-- the maximize/minimize control when toggling fullscreen).
+local function setIconImage(img, name)
+	local data = Library:GetIcon(name)
+	if not data then
+		return
+	end
+	img.Image = data.Image
+	if data.RectSize and (data.RectSize.X > 0 or data.RectSize.Y > 0) then
+		img.ImageRectOffset = data.RectOffset
+		img.ImageRectSize = data.RectSize
+	else
+		img.ImageRectOffset = Vector2.new(0, 0)
+		img.ImageRectSize = Vector2.new(0, 0)
+	end
+end
+
 --//============================================================\\--
 --||                     THEME SWITCHING                       ||--
 --\\============================================================//--
+
+-- Elements that paint themselves with direct (non-ThemeTag) colours — e.g. the
+-- selected dropdown option (Accent) or a toggle track — register a listener so
+-- they can re-apply their dynamic colours when the theme changes. Without this,
+-- those surfaces lag a theme behind ("half the window is the old theme").
+local themeListeners = {}
+local function onThemeChange(fn)
+	table.insert(themeListeners, fn)
+	return fn
+end
 
 function Library:SetTheme(name)
 	local theme = Themes[name] or (typeof(name) == "table" and name)
@@ -577,7 +630,7 @@ function Library:SetTheme(name)
 				local value = theme[key]
 				if value ~= nil then
 					if typeof(value) == "Color3" or typeof(value) == "number" then
-						tween(object, 0.25, { [prop] = value })
+						tween(object, 0.18, { [prop] = value })
 					else
 						pcall(function()
 							object[prop] = value
@@ -585,6 +638,14 @@ function Library:SetTheme(name)
 					end
 				end
 			end
+		end
+	end
+
+	for i = #themeListeners, 1, -1 do
+		local ok = pcall(themeListeners[i], theme)
+		if not ok then
+			-- drop dead listeners (their element was destroyed)
+			table.remove(themeListeners, i)
 		end
 	end
 
@@ -639,6 +700,28 @@ end
 
 function Library:GetTheme()
 	return Library.ThemeName
+end
+
+-- Swap the main font family at runtime (a "rbxasset://fonts/families/*.json"
+-- string, or any valid Font family). Re-applies it to every tracked text
+-- object while preserving each one's weight/style. Monospace Code blocks keep
+-- their own font (they were never tracked).
+function Library:SetFont(fontId)
+	if typeof(fontId) ~= "string" or fontId == "" then
+		return
+	end
+	fontFamily = fontId
+	for i = #fontObjects, 1, -1 do
+		local obj = fontObjects[i]
+		if obj and obj.Parent ~= nil then
+			pcall(function()
+				local face = obj.FontFace
+				obj.FontFace = Font.new(fontId, face.Weight, face.Style)
+			end)
+		else
+			table.remove(fontObjects, i)
+		end
+	end
 end
 
 --//============================================================\\--
@@ -699,18 +782,27 @@ protect(ScreenGui)
 Library.ScreenGui = ScreenGui
 
 -- Separate layer for notifications so they always render above windows.
+-- Default: bottom-right (matches the WindUI look). SetNotificationLower
+-- toggles between the lower (bottom) and upper (top) stack.
+local notificationLayout = listLayout(8, Enum.FillDirection.Vertical, {
+	HorizontalAlignment = Enum.HorizontalAlignment.Right,
+	VerticalAlignment = Enum.VerticalAlignment.Bottom,
+})
 local NotificationLayer = New("Frame", {
 	Name = "Notifications",
 	BackgroundTransparency = 1,
-	Size = UDim2.new(1, -20, 1, -20),
-	Position = UDim2.new(0, 10, 0, 10),
+	Size = UDim2.new(1, -28, 1, -28),
+	Position = UDim2.new(0, 14, 0, 14),
 	Parent = ScreenGui,
 }, {
-	listLayout(8, Enum.FillDirection.Vertical, {
-		HorizontalAlignment = Enum.HorizontalAlignment.Right,
-		VerticalAlignment = Enum.VerticalAlignment.Top,
-	}),
+	notificationLayout,
 })
+
+-- true (default) = notifications stack at the bottom; false = at the top.
+function Library:SetNotificationLower(lower)
+	notificationLayout.VerticalAlignment = (lower ~= false) and Enum.VerticalAlignment.Bottom
+		or Enum.VerticalAlignment.Top
+end
 
 --//============================================================\\--
 --||                      NOTIFICATIONS                        ||--
@@ -721,9 +813,14 @@ function Library:Notify(config)
 	local title = config.Title or "Notification"
 	local content = config.Content or ""
 	local duration = config.Duration or 4
+	local hasIcon = config.Icon ~= nil and config.Icon ~= ""
 
+	-- The holder is the layout slot; AutomaticSize Y is driven by the text
+	-- column (offset-sized). Nothing here uses a scale-based Y size — a
+	-- scale-Y child inside an AutomaticSize parent feeds back and makes the
+	-- card grow to fill the whole screen.
 	local holder = New("Frame", {
-		Size = UDim2.new(0, 280, 0, 0),
+		Size = UDim2.new(0, 300, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundTransparency = 1,
 		Parent = NotificationLayer,
@@ -732,31 +829,42 @@ function Library:Notify(config)
 	local card = New("Frame", {
 		Size = UDim2.new(1, 0, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
-		Position = UDim2.new(1, 20, 0, 0),
+		Position = UDim2.new(1, 24, 0, 0),
 		BackgroundTransparency = 0,
 		ThemeTag = { BackgroundColor3 = "Notification" },
 		Parent = holder,
 	}, {
-		corner(10),
+		corner(12),
 		New("UIStroke", {
 			Thickness = 1,
-			Transparency = 0.85,
-			ThemeTag = { Color = "Stroke" },
+			ThemeTag = { Color = "Stroke", Transparency = "StrokeTransparency" },
 		}),
-		padding(12),
-		listLayout(4),
-		-- accent bar
-		New("Frame", {
-			Size = UDim2.new(0, 3, 1, -16),
-			Position = UDim2.new(0, 0, 0, 8),
-			ThemeTag = { BackgroundColor3 = "Accent" },
-		}, { corner(2) }),
+	})
+
+	local textLeft = 15
+	if hasIcon then
+		local icon = makeIcon(config.Icon, UDim2.new(0, 20, 0, 20), "Accent")
+		icon.AnchorPoint = Vector2.new(0, 0)
+		icon.Position = UDim2.new(0, 14, 0, 14)
+		icon.Parent = card
+		textLeft = 14 + 20 + 10
+	end
+
+	New("Frame", {
+		Size = UDim2.new(1, -(textLeft + 14), 0, 0),
+		Position = UDim2.new(0, textLeft, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundTransparency = 1,
+		Parent = card,
+	}, {
+		listLayout(3),
+		padding(0, { PaddingTop = UDim.new(0, 12), PaddingBottom = UDim.new(0, 12) }),
 		New("TextLabel", {
 			Text = title,
 			FontFace = font(Enum.FontWeight.SemiBold),
 			TextSize = 15,
 			TextXAlignment = Enum.TextXAlignment.Left,
-			Size = UDim2.new(1, 0, 0, 18),
+			Size = UDim2.new(1, 0, 0, 0),
 			AutomaticSize = Enum.AutomaticSize.Y,
 			TextWrapped = true,
 			ThemeTag = { TextColor3 = "Text" },
@@ -775,7 +883,7 @@ function Library:Notify(config)
 	tween(card, 0.35, { Position = UDim2.new(0, 0, 0, 0) }, Enum.EasingStyle.Quint)
 
 	task.delay(duration, function()
-		tween(card, 0.3, { Position = UDim2.new(1, 20, 0, 0) }, Enum.EasingStyle.Quint)
+		tween(card, 0.3, { Position = UDim2.new(1, 24, 0, 0) }, Enum.EasingStyle.Quint)
 		task.wait(0.32)
 		holder:Destroy()
 	end)
@@ -803,7 +911,7 @@ local function makeElement(parent, opts)
 		Parent = parent,
 		LayoutOrder = opts.LayoutOrder or 1,
 	}, {
-		corner(8),
+		corner(10),
 		New("UIStroke", {
 			Thickness = 1,
 			ThemeTag = { Color = "Stroke", Transparency = "StrokeTransparency" },
@@ -812,12 +920,16 @@ local function makeElement(parent, opts)
 	})
 
 	-- Optional left icon (by Lucide name). Shifts the text column right.
+	-- IMPORTANT: the icon is positioned with a fixed OFFSET (top-aligned with
+	-- the title row), never a scale-Y position. A scale-Y child of an
+	-- AutomaticSize=Y card breaks the card's height (it grows unbounded) and
+	-- re-centres itself when the card resizes (e.g. a dropdown opening).
 	local iconInset = 14
 	local iconImage
 	if opts.Icon and opts.Icon ~= "" then
 		iconImage = makeIcon(opts.Icon, UDim2.new(0, 18, 0, 18), "Text")
-		iconImage.AnchorPoint = Vector2.new(0, 0.5)
-		iconImage.Position = UDim2.new(0, 14, 0.5, 0)
+		iconImage.AnchorPoint = Vector2.new(0, 0)
+		iconImage.Position = UDim2.new(0, 14, 0, 11)
 		iconImage.Parent = card
 		iconInset = 14 + 18 + 10
 	end
@@ -908,22 +1020,92 @@ end
 
 local Elements = {}
 
+-- Bind every element constructor onto `target` so it appends to `parentFrame`
+-- (e.g. target:Button({...}) builds into parentFrame). Used by Tab, the
+-- window's default page, and collapsible Sections — so sections can hold any
+-- element, including nested sections.
+local function bindElements(target, parentFrame)
+	for name, constructor in pairs(Elements) do
+		target[name] = function(_, elementConfig)
+			return constructor(parentFrame, elementConfig)
+		end
+	end
+	return target
+end
+
+-- Section is a collapsible GROUP, not a title. It has a bold header with a
+-- chevron; clicking it expands/collapses its body, which holds elements.
+-- (For a plain heading, use Tab:Text({ Title = "..." }) instead.)
 function Elements.Section(page, config)
 	config = config or {}
-	local label = New("TextLabel", {
-		Text = string.upper(config.Title or "Section"),
-		FontFace = font(Enum.FontWeight.SemiBold),
-		TextSize = config.TextSize or 12,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		Size = UDim2.new(1, 0, 0, 18),
+	local opened = config.Opened ~= false
+
+	local container = New("Frame", {
+		Size = UDim2.new(1, 0, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundTransparency = 1,
-		ThemeTag = { TextColor3 = "SubText" },
 		Parent = page,
 	}, {
-		padding(0, { PaddingTop = UDim.new(0, 6), PaddingLeft = UDim.new(0, 2) }),
+		listLayout(6),
 	})
-	return { Object = label, Set = function(_, t) label.Text = string.upper(t) end }
+
+	local header = New("TextButton", {
+		Text = "",
+		AutoButtonColor = false,
+		Size = UDim2.new(1, 0, 0, 30),
+		BackgroundTransparency = 1,
+		Parent = container,
+		LayoutOrder = 0,
+	})
+	local titleLabel = New("TextLabel", {
+		Text = config.Title or "Section",
+		FontFace = font(Enum.FontWeight.SemiBold),
+		TextSize = 16,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Size = UDim2.new(1, -30, 1, 0),
+		Position = UDim2.new(0, 2, 0, 0),
+		BackgroundTransparency = 1,
+		ThemeTag = { TextColor3 = "Text" },
+		Parent = header,
+	})
+	local chev = makeIcon("chevron-down", UDim2.new(0, 18, 0, 18), "SubText")
+	chev.AnchorPoint = Vector2.new(1, 0.5)
+	chev.Position = UDim2.new(1, -2, 0.5, 0)
+	chev.Parent = header
+
+	-- Body holds the section's elements. Hidden bodies don't count toward the
+	-- container's automatic height, so collapsing pulls following elements up.
+	local body = New("Frame", {
+		Size = UDim2.new(1, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundTransparency = 1,
+		Visible = opened,
+		Parent = container,
+		LayoutOrder = 1,
+	}, {
+		listLayout(6),
+	})
+
+	local function setOpen(state)
+		opened = state
+		body.Visible = state
+		tween(chev, 0.18, { Rotation = state and 180 or 0 })
+	end
+	chev.Rotation = opened and 180 or 0
+
+	connect(header.MouseButton1Click, function()
+		setOpen(not opened)
+	end)
+
+	local section = {
+		Object = container,
+		Body = body,
+		SetTitle = function(_, t) titleLabel.Text = t end,
+		SetOpen = function(_, o) setOpen(o and true or false) end,
+		Toggle = function() setOpen(not opened) end,
+	}
+	bindElements(section, body)
+	return section
 end
 
 function Elements.Divider(page)
@@ -961,16 +1143,11 @@ function Elements.Button(page, config)
 		ControlWidth = 18,
 	})
 
-	-- chevron
-	New("TextLabel", {
-		Text = "›",
-		FontFace = font(Enum.FontWeight.Bold),
-		TextSize = 22,
-		Size = UDim2.new(1, 0, 1, 0),
-		TextXAlignment = Enum.TextXAlignment.Right,
-		ThemeTag = { TextColor3 = "SubText" },
-		Parent = el.Control,
-	})
+	-- chevron (Lucide icon, not a text glyph — glyphs render as tofu boxes)
+	local chev = makeIcon("chevron-right", UDim2.new(0, 16, 0, 16), "SubText")
+	chev.AnchorPoint = Vector2.new(1, 0.5)
+	chev.Position = UDim2.new(1, 0, 0.5, 0)
+	chev.Parent = el.Control
 
 	local hit = New("TextButton", {
 		Text = "",
@@ -1055,6 +1232,14 @@ function Elements.Toggle(page, config)
 
 	connect(hit.MouseButton1Click, function()
 		set(not value, true, true)
+	end)
+
+	-- track colour is set directly (not via ThemeTag), so refresh it on theme change
+	onThemeChange(function()
+		if el.Card.Parent == nil then
+			error("dead")
+		end
+		track.BackgroundColor3 = value and Library.Theme.Toggle or Library.Theme.ToggleOff
 	end)
 
 	object = {
@@ -1334,14 +1519,10 @@ function Elements.Dropdown(page, config)
 		Parent = header,
 	})
 
-	local arrow = New("TextLabel", {
-		Text = "▾",
-		TextSize = 14,
-		Size = UDim2.new(0, 24, 1, 0),
-		Position = UDim2.new(1, -26, 0, 0),
-		ThemeTag = { TextColor3 = "SubText" },
-		Parent = header,
-	})
+	local arrow = makeIcon("chevron-down", UDim2.new(0, 16, 0, 16), "SubText")
+	arrow.AnchorPoint = Vector2.new(0.5, 0.5)
+	arrow.Position = UDim2.new(1, -14, 0.5, 0)
+	arrow.Parent = header
 
 	-- The expandable list lives inside the card, below the header row,
 	-- so it pushes following elements down (clip-safe, no popup layer).
@@ -1430,6 +1611,14 @@ function Elements.Dropdown(page, config)
 	end)
 
 	refresh()
+	-- Re-apply option colours when the theme changes (selected = Accent,
+	-- others = Element) so an open dropdown doesn't lag a theme behind.
+	onThemeChange(function()
+		if el.Card.Parent == nil then
+			error("dead") -- pruned by SetTheme
+		end
+		refresh()
+	end)
 
 	object = {
 		Object = el.Card,
@@ -1534,9 +1723,12 @@ function Elements.Keybind(page, config)
 
 	local binding = false
 
-	local function setKey(key)
+	local function setKey(key, fireCallback)
 		current = key
 		btn.Text = key and key.Name or "None"
+		if fireCallback then
+			task.spawn(safeCallback, config.Callback, key)
+		end
 	end
 
 	connect(btn.MouseButton1Click, function()
@@ -1550,10 +1742,11 @@ function Elements.Keybind(page, config)
 			if input.UserInputType == Enum.UserInputType.Keyboard then
 				binding = false
 				tween(btn, 0.12, { BackgroundColor3 = Library.Theme.ElementHover })
+				-- fire the callback when the user rebinds (sets) a key
 				if input.KeyCode == Enum.KeyCode.Backspace or input.KeyCode == Enum.KeyCode.Escape then
-					setKey(nil)
+					setKey(nil, true)
 				else
-					setKey(input.KeyCode)
+					setKey(input.KeyCode, true)
 				end
 			end
 			return
@@ -1568,11 +1761,11 @@ function Elements.Keybind(page, config)
 
 	local object = {
 		Object = el.Card,
-		Set = function(_, k)
+		Set = function(_, k, fire)
 			if typeof(k) == "string" then
 				k = (k ~= "None" and k ~= "") and Enum.KeyCode[k] or nil
 			end
-			setKey(k)
+			setKey(k, fire == true)
 		end,
 		Get = function() return current end,
 	}
@@ -1882,17 +2075,18 @@ local function createTab(window, config)
 	window.TabCount = window.TabCount + 1
 	local index = window.TabCount
 
-	-- Sidebar button
+	-- Sidebar button. BackgroundColor3 is theme-tagged so the active tab's
+	-- fill tracks theme changes; SelectTab only toggles its transparency.
 	local button = New("TextButton", {
 		Text = "",
 		AutoButtonColor = false,
-		Size = UDim2.new(1, 0, 0, 34),
-		BackgroundColor3 = window.Library.Theme.TabActive,
+		Size = UDim2.new(1, 0, 0, 36),
 		BackgroundTransparency = 1,
+		ThemeTag = { BackgroundColor3 = "TabActive" },
 		Parent = window.TabList,
 		LayoutOrder = index,
 	}, {
-		corner(7),
+		corner(9),
 	})
 
 	local activeBar = New("Frame", {
@@ -1951,11 +2145,7 @@ local function createTab(window, config)
 	end
 
 	-- Wire element constructors onto the tab (Tab:Button, Tab:Toggle, ...).
-	for name, constructor in pairs(Elements) do
-		Tab[name] = function(_, elementConfig)
-			return constructor(page, elementConfig)
-		end
-	end
+	bindElements(Tab, page)
 
 	connect(button.MouseButton1Click, function()
 		window:SelectTab(index)
@@ -2257,13 +2447,24 @@ function Library:CreateWindow(config)
 		ThemeTag = { BackgroundColor3 = "Background" },
 		Parent = main,
 	}, {
-		corner(config.Radius or 12),
+		corner(config.Radius or 16),
 		New("UIStroke", {
 			Thickness = 1,
 			ThemeTag = { Color = "Stroke", Transparency = "StrokeTransparency" },
 		}),
 	})
 	Window.Root = root
+
+	-- Bottom drag handle (WindUI signature). Purely visual + an extra drag grip.
+	local dragHandle = New("Frame", {
+		Size = UDim2.new(0, 110, 0, 4),
+		Position = UDim2.new(0.5, 0, 1, -8),
+		AnchorPoint = Vector2.new(0.5, 1),
+		BackgroundTransparency = 0.65,
+		ThemeTag = { BackgroundColor3 = "Text" },
+		ZIndex = 6,
+		Parent = root,
+	}, { corner(2) })
 
 	-- Topbar -----------------------------------------------------------
 	local topbar = New("Frame", {
@@ -2320,44 +2521,53 @@ function Library:CreateWindow(config)
 
 	-- window controls (right)
 	local controls = New("Frame", {
-		Size = UDim2.new(0, 64, 1, 0),
+		Size = UDim2.new(0, 100, 1, 0),
 		Position = UDim2.new(1, 0, 0, 0),
 		AnchorPoint = Vector2.new(1, 0),
 		BackgroundTransparency = 1,
 		Parent = topbar,
 	}, {
-		listLayout(6, Enum.FillDirection.Horizontal, {
+		listLayout(4, Enum.FillDirection.Horizontal, {
 			HorizontalAlignment = Enum.HorizontalAlignment.Right,
 			VerticalAlignment = Enum.VerticalAlignment.Center,
 		}),
 	})
 
-	local function controlButton(symbol, callback)
+	local function controlButton(iconName, order, callback)
 		local btn = New("TextButton", {
-			Text = symbol,
-			FontFace = font(Enum.FontWeight.Bold),
-			TextSize = 16,
+			Text = "",
 			AutoButtonColor = false,
-			Size = UDim2.new(0, 26, 0, 26),
+			Size = UDim2.new(0, 28, 0, 28),
 			BackgroundTransparency = 1,
-			ThemeTag = { TextColor3 = "SubText", BackgroundColor3 = "ElementHover" },
+			LayoutOrder = order,
+			ThemeTag = { BackgroundColor3 = "ElementHover" },
 			Parent = controls,
-		}, { corner(7) })
+		}, { corner(8) })
+
+		local icon = makeIcon(iconName, UDim2.new(0, 16, 0, 16), "SubText")
+		icon.AnchorPoint = Vector2.new(0.5, 0.5)
+		icon.Position = UDim2.new(0.5, 0, 0.5, 0)
+		icon.Parent = btn
 
 		connect(btn.MouseEnter, function()
-			tween(btn, 0.12, { BackgroundTransparency = 0, TextColor3 = Library.Theme.Text })
+			tween(btn, 0.12, { BackgroundTransparency = 0 })
+			tween(icon, 0.12, { ImageColor3 = Library.Theme.Text })
 		end)
 		connect(btn.MouseLeave, function()
-			tween(btn, 0.12, { BackgroundTransparency = 1, TextColor3 = Library.Theme.SubText })
+			tween(btn, 0.12, { BackgroundTransparency = 1 })
+			tween(icon, 0.12, { ImageColor3 = Library.Theme.SubText })
 		end)
 		connect(btn.MouseButton1Click, callback)
-		return btn
+		return btn, icon
 	end
 
-	controlButton("—", function()
+	controlButton("minus", 1, function()
 		Window:Minimize()
 	end)
-	controlButton("✕", function()
+	local maxBtn, maxIcon = controlButton("maximize", 2, function()
+		Window:ToggleFullscreen()
+	end)
+	controlButton("x", 3, function()
 		Window:Close()
 	end)
 
@@ -2427,6 +2637,7 @@ function Library:CreateWindow(config)
 
 	-- Behaviour --------------------------------------------------------
 	dragify(main, topbar)
+	dragify(main, dragHandle)
 
 	function Window:SelectTab(targetIndex)
 		Window.CurrentTab = targetIndex
@@ -2604,24 +2815,21 @@ function Library:CreateWindow(config)
 
 	-- Floating reopen button (shown while minimized; also reopened via key).
 	local openButton = New("TextButton", {
-		Text = config.Icon and "" or "≡",
-		FontFace = font(Enum.FontWeight.Bold),
-		TextSize = 24,
+		Text = "",
 		AutoButtonColor = false,
 		Size = UDim2.new(0, 46, 0, 46),
 		Position = UDim2.new(0, 20, 0, 20),
-		ThemeTag = { BackgroundColor3 = "Accent", TextColor3 = "AccentText" },
+		ThemeTag = { BackgroundColor3 = "Accent" },
 		Visible = false,
 		Parent = ScreenGui,
 	}, {
 		corner(23),
+		New("UIStroke", { Thickness = 1, ThemeTag = { Color = "Stroke", Transparency = "StrokeTransparency" } }),
 	})
-	if config.Icon and config.Icon ~= "" then
-		local obIcon = makeIcon(config.Icon, UDim2.new(0, 24, 0, 24), "AccentText")
-		obIcon.AnchorPoint = Vector2.new(0.5, 0.5)
-		obIcon.Position = UDim2.new(0.5, 0, 0.5, 0)
-		obIcon.Parent = openButton
-	end
+	local obIcon = makeIcon((config.Icon and config.Icon ~= "" and config.Icon) or "layout-grid", UDim2.new(0, 24, 0, 24), "AccentText")
+	obIcon.AnchorPoint = Vector2.new(0.5, 0.5)
+	obIcon.Position = UDim2.new(0.5, 0, 0.5, 0)
+	obIcon.Parent = openButton
 	dragify(openButton)
 
 	-- Animations use Size only (no GroupTransparency) to keep icons crisp.
@@ -2663,6 +2871,15 @@ function Library:CreateWindow(config)
 		ScreenGui:Destroy()
 	end
 
+	function Window:SetToggleKey(key)
+		if typeof(key) == "string" then
+			key = Enum.KeyCode[key]
+		end
+		if key then
+			Window.ToggleKey = key
+		end
+	end
+
 	connect(openButton.MouseButton1Click, function()
 		Window:Open()
 	end)
@@ -2677,6 +2894,17 @@ function Library:CreateWindow(config)
 			else
 				Window:Minimize()
 			end
+		end
+	end)
+
+	-- Re-apply the active tab's label/icon colours on theme change (SelectTab
+	-- sets them directly, so they would otherwise lag a theme behind).
+	onThemeChange(function()
+		if Window.Destroyed then
+			error("dead")
+		end
+		if Window.CurrentTab then
+			Window:SelectTab(Window.CurrentTab)
 		end
 	end)
 
