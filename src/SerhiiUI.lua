@@ -51,7 +51,7 @@ local function font(weight)
 	return Font.new(fontFamily, weight or Enum.FontWeight.Medium)
 end
 
-local VERSION = "0.1.0-beta"
+local VERSION = "0.1.1-beta"
 
 --//============================================================\\--
 --||                         THEMES                            ||--
@@ -483,7 +483,7 @@ local function ensureIcons()
 			end
 		end)
 	else
-		warn("[SerhiiUI] failed to load the Lucide icon pack; icons will be skipped")
+		print("[SerhiiUI] failed to load the Lucide icon pack; icons will be skipped")
 	end
 end
 
