@@ -22,7 +22,7 @@ styling (no external image assets), and a small self-contained surface.
   **Keybind**, **Colorpicker**, **Code** (with a copy button).
 - **Lucide icons by name** (`Icon = "house"`) on the window, tabs and most
   elements - rendered crisp (no `CanvasGroup` flattening).
-- **11 built-in themes** (Dark default) with a full theme engine: list, create,
+- **21 built-in themes** (Dark default) with a full theme engine: list, create,
   set, remove, and live-switch.
 - Optional **key system** gate before the window loads.
 - Optional **config save system** - flagged elements persist to disk.

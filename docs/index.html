@@ -311,7 +311,7 @@ end })</code></pre></div>
         <div class="grid">
           <div class="card"><h4>13 elements</h4><p>Section, Divider, Space, Text, Paragraph, Button, Toggle, Slider, Input, Dropdown, Keybind, Colorpicker, Code.</p></div>
           <div class="card"><h4>Optional tabs</h4><p>Use a sidebar of tabs, or drop elements straight onto the window with no sidebar.</p></div>
-          <div class="card"><h4>11 themes</h4><p>Dark (default), Light, Aqua, Rose, Emerald, Indigo, Amber, Crimson, Midnight, Mocha, Neon - list, create, set, remove, live-switch.</p></div>
+          <div class="card"><h4>21 themes</h4><p>Dark (default), Light, Aqua, Rose, Emerald, Indigo, Amber, Crimson, Midnight, Mocha, Neon, Cotton Candy, Slate, Sunset, Forest, Plum, Steel, Coral, Lime, Obsidian, Sky - list, create, set, remove, live-switch.</p></div>
           <div class="card"><h4>Lucide icons</h4><p>Reference icons by name (<code>Icon = "house"</code>) on the window, tabs and most elements. Rendered crisp.</p></div>
           <div class="card"><h4>Key system</h4><p>Optional gate that blocks the window until a valid key is entered, with save &amp; validator support.</p></div>
           <div class="card"><h4>Config saving</h4><p>Opt-in. Flagged elements persist to disk; values round-trip through JSON.</p></div>
@@ -573,7 +573,7 @@ print(t:Get())     -- read current value</code></pre></div>
       <!-- THEMES -->
       <section id="themes">
         <h2>Themes</h2>
-        <p>11 built-in themes (<b>Dark</b> is the default). Click a swatch to preview its accent
+        <p>21 built-in themes (<b>Dark</b> is the default). Click a swatch to preview its accent
         on this page.</p>
         <div class="themes" id="themeGrid"></div>
         <h3>Theme management</h3>
@@ -594,7 +594,7 @@ Tab:Dropdown({
 })
 
 -- Make your own from a short spec (the helper fills the rest):
-SerhiiUI:CreateTheme("Sunset", {
+SerhiiUI:CreateTheme("Peach", {
     Background = Color3.fromHex("#1a0f0a"),
     Element = Color3.fromHex("#2a1810"),
     ElementHover = Color3.fromHex("#3a2216"),
@@ -811,7 +811,12 @@ end)</code></pre></div>
     ["Emerald", "#06140f", "#10b981"], ["Indigo", "#0f0f1f", "#6366f1"],
     ["Amber", "#1c1404", "#f59e0b"], ["Crimson", "#160606", "#dc2626"],
     ["Midnight", "#0a0f1e", "#2563eb"], ["Mocha", "#1a1410", "#c08457"],
-    ["Neon", "#0a0a12", "#e635c8"]
+    ["Neon", "#0a0a12", "#e635c8"], ["Cotton Candy", "#1a0b2e", "#ec4899"],
+    ["Slate", "#0f172a", "#38bdf8"], ["Sunset", "#1c0f0a", "#f97316"],
+    ["Forest", "#0c1410", "#22c55e"], ["Plum", "#160c1e", "#a855f7"],
+    ["Steel", "#16181c", "#64748b"], ["Coral", "#1d0d0f", "#fb7185"],
+    ["Lime", "#11160a", "#84cc16"], ["Obsidian", "#000000", "#f5f5f5"],
+    ["Sky", "#081521", "#0ea5e9"]
   ];
   var grid = document.getElementById("themeGrid");
   THEMES.forEach(function (t) {
