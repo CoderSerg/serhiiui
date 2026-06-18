@@ -1260,7 +1260,7 @@ function Elements.Slider(page, config)
 	config = config or {}
 	local valueCfg = config.Value or {}
 	local min = valueCfg.Min or 0
-	local max = valueCfg.Max or 100
+	local max = valueCfg.Max or 1
 	local default = valueCfg.Default or min
 	local step = config.Step or 1
 	local current = math.clamp(default, min, max)
