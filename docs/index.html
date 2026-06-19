@@ -309,7 +309,7 @@ end })</code></pre></div>
       <section id="features">
         <h2>Features</h2>
         <div class="grid">
-          <div class="card"><h4>13 elements</h4><p>Section, Divider, Space, Text, Paragraph, Button, Toggle, Slider, Input, Dropdown, Keybind, Colorpicker, Code.</p></div>
+          <div class="card"><h4>15 elements</h4><p>Section, Divider, Space, Text, Paragraph, Button, Toggle, Slider, Input, Dropdown, Keybind, Colorpicker, Code, Tag, Image.</p></div>
           <div class="card"><h4>Optional tabs</h4><p>Use a sidebar of tabs, or drop elements straight onto the window with no sidebar.</p></div>
           <div class="card"><h4>21 themes</h4><p>Dark (default), Light, Aqua, Rose, Emerald, Indigo, Amber, Crimson, Midnight, Mocha, Neon, Cotton Candy, Slate, Sunset, Forest, Plum, Steel, Coral, Lime, Obsidian, Sky - list, create, set, remove, live-switch.</p></div>
           <div class="card"><h4>Lucide icons</h4><p>Reference icons by name (<code>Icon = "house"</code>) on the window, tabs and most elements. Rendered crisp.</p></div>
@@ -556,6 +556,26 @@ print(t:Get())     -- read current value</code></pre></div>
     Title = "loadstring",
     Code = 'loadstring(game:HttpGet("...SerhiiUI.lua"))()',
 })</code></pre></div>
+
+        <h3>Tag</h3>
+        <p class="el-sig">Tab:Tag({ Title, Radius, Icon, Color })  →  :SetTitle / :SetColor</p>
+        <p>A small pill-shaped badge. <code>Color</code> is a plain <code>Color3</code> background
+        (defaults to the theme accent); the text/icon colour is auto-picked for contrast.
+        <code>Radius</code> controls corner roundness (defaults to a full pill).</p>
+        <div class="code"><pre><code class="lua">Tab:Tag({ Title = "v1.6.41", Color = Color3.fromHex("#fbbf24") })
+Tab:Tag({ Title = "UI Library", Icon = "box", Color = Color3.fromHex("#34d399") })
+Tab:Tag({ Title = "Accent" }) -- no Color → follows the theme accent</code></pre></div>
+
+        <h3>Image</h3>
+        <p class="el-sig">Tab:Image({ Image, Height, Radius, Color, ScaleType })  →  :SetImage</p>
+        <p>A full-width picture block. <code>Image</code> may be an asset id (number or
+        <code>rbxassetid://</code>), a url, or a Lucide icon name. <code>Height</code> defaults to
+        120, <code>Radius</code> to 8; <code>Color</code> tints the image.</p>
+        <div class="code"><pre><code class="lua">Tab:Image({
+    Image = "rbxassetid://130824334144356",
+    Height = 120,
+    Radius = 10,
+})</code></pre></div>
       </section>
 
       <!-- NOTIFICATIONS -->
@@ -725,7 +745,7 @@ end)</code></pre></div>
           <tbody>
             <tr><td><code>SerhiiUI:CreateWindow(config)</code></td><td class="muted">Window (or nil if a key gate is cancelled)</td></tr>
             <tr><td><code>Window:Tab(config)</code></td><td class="muted">Tab (optional)</td></tr>
-            <tr><td><code>Tab:Section / :Divider / :Space / :Text / :Paragraph / :Code</code></td><td class="muted">element</td></tr>
+            <tr><td><code>Tab:Section / :Divider / :Space / :Text / :Paragraph / :Code / :Tag / :Image</code></td><td class="muted">element</td></tr>
             <tr><td><code>Tab:Button / :Toggle / :Slider / :Input</code></td><td class="muted">element with :Set / :Get</td></tr>
             <tr><td><code>Tab:Dropdown / :Keybind / :Colorpicker</code></td><td class="muted">element with :Set / :Get</td></tr>
             <tr><td><code>Window:&lt;Element&gt;(config)</code></td><td class="muted">same elements, on the window</td></tr>

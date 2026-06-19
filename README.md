@@ -19,7 +19,8 @@ styling (no external image assets), and a small self-contained surface.
 - Components: **Window**, **Tab** (optional - elements can go straight on the
   window), **Section**, **Divider**, **Space**, **Text**, **Paragraph**,
   **Button**, **Toggle**, **Slider**, **Input**, **Dropdown** (single & multi),
-  **Keybind**, **Colorpicker**, **Code** (with a copy button).
+  **Keybind**, **Colorpicker**, **Code** (with a copy button), **Tag** (pill
+  badge), **Image**.
 - **Lucide icons by name** (`Icon = "house"`) on the window, tabs and most
   elements - rendered crisp (no `CanvasGroup` flattening).
 - **21 built-in themes** (Dark default) with a full theme engine: list, create,
@@ -136,7 +137,7 @@ is in [`examples/admin.lua`](examples/admin.lua).
 | --- | --- |
 | `SerhiiUI:CreateWindow(config)` | `Window` (or `nil` if a key gate is cancelled) |
 | `Window:Tab(config)` | `Tab` (tabs are optional) |
-| `Tab:Section / :Divider / :Space / :Text / :Paragraph / :Code` | element |
+| `Tab:Section / :Divider / :Space / :Text / :Paragraph / :Code / :Tag / :Image` | element |
 | `Tab:Button / :Toggle / :Slider / :Input / :Dropdown / :Keybind / :Colorpicker` | element with `:Set` / `:Get` |
 | `Window:<Element>(config)` | same elements, appended directly to the window |
 | `SerhiiUI:Notify(config)` | - |

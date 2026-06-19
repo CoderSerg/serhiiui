@@ -1768,6 +1768,139 @@ function Elements.Space(page, config)
 	return { Object = space }
 end
 
+-- Resolve an image source to { Image, RectOffset?, RectSize? }.
+-- Accepts an asset id number, an "rbxassetid://"/"rbxthumb"/"http" string, or a
+-- Lucide icon name (resolved through the icon pack like every other icon).
+local function resolveImage(src)
+	if typeof(src) == "number" then
+		return { Image = "rbxassetid://" .. src }
+	end
+	if typeof(src) == "string" and src ~= "" then
+		if src:match("^rbx") or src:match("^http") then
+			return { Image = src }
+		end
+		return Library:GetIcon(src) or { Image = src }
+	end
+	return nil
+end
+
+-- Image: a full-width picture block. `Image` may be an asset id / url / icon
+-- name. `Height` sets the block height (default 120); `Radius` its corners.
+function Elements.Image(page, config)
+	config = config or {}
+
+	local img = New("ImageLabel", {
+		Size = UDim2.new(1, 0, 0, config.Height or config.Size or 120),
+		BackgroundTransparency = 1,
+		ScaleType = config.ScaleType or Enum.ScaleType.Fit,
+		Parent = page,
+	}, {
+		corner(config.Radius or 8),
+	})
+
+	local function setImage(src)
+		local data = resolveImage(src)
+		if not data then
+			return
+		end
+		img.Image = data.Image
+		if data.RectSize and (data.RectSize.X > 0 or data.RectSize.Y > 0) then
+			img.ImageRectOffset = data.RectOffset
+			img.ImageRectSize = data.RectSize
+		else
+			img.ImageRectOffset = Vector2.new(0, 0)
+			img.ImageRectSize = Vector2.new(0, 0)
+		end
+	end
+
+	setImage(config.Image or config.Url or config.Icon)
+	if config.Color then
+		img.ImageColor3 = config.Color
+	end
+
+	return {
+		Object = img,
+		SetImage = function(_, src) setImage(src) end,
+	}
+end
+
+-- Tag: a small pill-shaped badge (WindUI-style). Options:
+--   Title  - text on the badge
+--   Radius - corner roundness (defaults to a full pill)
+--   Icon   - optional Lucide icon shown before the text
+--   Color  - Color3 background (defaults to the theme accent)
+-- Text/icon colour is auto-picked (dark on light pills, light on dark) so the
+-- label stays legible whatever colour is given.
+function Elements.Tag(page, config)
+	config = config or {}
+	local height = 24
+
+	local holder = New("Frame", {
+		Size = UDim2.new(1, 0, 0, height),
+		BackgroundTransparency = 1,
+		Parent = page,
+	})
+
+	local pill = New("Frame", {
+		Size = UDim2.new(0, 0, 0, height),
+		AutomaticSize = Enum.AutomaticSize.X,
+		Parent = holder,
+	}, {
+		corner(config.Radius or height / 2),
+		listLayout(6, Enum.FillDirection.Horizontal, {
+			VerticalAlignment = Enum.VerticalAlignment.Center,
+		}),
+		padding(0, { PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12) }),
+	})
+
+	local iconImage
+	if config.Icon and config.Icon ~= "" then
+		iconImage = makeIcon(config.Icon, UDim2.new(0, 15, 0, 15))
+		iconImage.LayoutOrder = 0
+		iconImage.Parent = pill
+	end
+
+	local label = New("TextLabel", {
+		Text = config.Title or config.Text or "Tag",
+		FontFace = font(Enum.FontWeight.SemiBold),
+		TextSize = 13,
+		Size = UDim2.new(0, 0, 0, height),
+		AutomaticSize = Enum.AutomaticSize.X,
+		BackgroundTransparency = 1,
+		LayoutOrder = 1,
+		Parent = pill,
+	})
+
+	-- Paint the pill and pick a contrasting colour for its text/icon.
+	local function applyColor(c)
+		pill.BackgroundColor3 = c
+		local luminance = 0.299 * c.R + 0.587 * c.G + 0.114 * c.B
+		local fg = luminance > 0.6 and Color3.fromHex("#11141a") or Color3.fromHex("#ffffff")
+		label.TextColor3 = fg
+		if iconImage then
+			iconImage.ImageColor3 = fg
+		end
+	end
+
+	applyColor(config.Color or Library.Theme.Accent)
+
+	-- With no explicit colour the badge tracks the theme accent on switch.
+	if not config.Color then
+		onThemeChange(function(theme)
+			if holder.Parent == nil then
+				error("dead") -- pruned by SetTheme once the tag is gone
+			end
+			applyColor(theme.Accent)
+		end)
+	end
+
+	return {
+		Object = holder,
+		SetTitle = function(_, t) label.Text = t end,
+		SetColor = function(_, c) applyColor(c) end,
+	}
+end
+
 function Elements.Keybind(page, config)
 	config = config or {}
 	local current = config.Default

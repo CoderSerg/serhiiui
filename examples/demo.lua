@@ -49,6 +49,15 @@ Home:Paragraph({
 	Desc = "A clean UI library for Roblox script hubs. Press RightControl to hide/show.",
 })
 Home:Text({ Title = "Plain text supports <b>rich text</b> and colors.", Muted = true })
+
+-- Tags: small pill badges (Title / Radius / Icon / Color). Color defaults to
+-- the theme accent; text colour is auto-picked for contrast.
+Home:Tag({ Title = "v" .. SerhiiUI.Version, Color = Color3.fromHex("#fbbf24") })
+Home:Tag({ Title = "UI Library", Icon = "box", Color = Color3.fromHex("#34d399") })
+Home:Tag({ Title = "Accent", Icon = "sparkles" }) -- no Color → follows the theme
+
+-- Image: a full-width picture block (asset id / url / icon name).
+Home:Image({ Image = "panels-top-left", Height = 90, Radius = 10 })
 Home:Space({ Height = 6 })
 
 Home:Section({ Title = "Theme" })
